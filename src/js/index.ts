@@ -6,7 +6,10 @@ import XYZ from 'https://cdn.skypack.dev/ol/source/XYZ.js'
 import Point from 'https://cdn.skypack.dev/ol/geom/Point.js'
 import VectorLayer from 'https://cdn.skypack.dev/ol/layer/Vector.js'
 import VectorSource from 'https://cdn.skypack.dev/ol/source/Vector.js'
-import {fromLonLat} from 'https://cdn.skypack.dev/ol/proj.js'
+import {fromLonLat, transform} from 'https://cdn.skypack.dev/ol/proj.js'
+
+const center = [4.35247, 50.84673]
+const zoom = 18
 
 const map = new Map({
   target: 'map',
@@ -18,14 +21,17 @@ const map = new Map({
     }),
   ],
   view: new View({
-    center: [4.35247, 50.84673],
-    zoom: 2,
+    center,
+    zoom,
   }),
 })
 
+map.getView().setCenter(transform(center, 'EPSG:4326', 'EPSG:3857'))
+map.getView().setZoom(zoom)
+
 const features = [
   new Feature({
-    geometry: new Point(fromLonLat([4.35247, 50.84673])),
+    geometry: new Point(fromLonLat(center)),
   }),
 ]
 
@@ -39,13 +45,18 @@ const layer = new VectorLayer({
 map.addLayer(layer)
 
 interface Position {
-  coords: {longitude: unknown; latitude: unknown}
+  coords: {longitude: number; latitude: number}
+}
+
+function addMarker(coords: {longitude: number; latitude: number}) {
+  source.addFeature(new Feature({geometry: new Point(fromLonLat([coords.longitude, coords.latitude]))}))
+  map.getView().setCenter(transform([coords.longitude, coords.latitude], 'EPSG:4326', 'EPSG:3857'))
 }
 
 function success(pos: Position) {
   console.log(pos)
-  const crd = pos.coords
-  source.addFeature(new Feature({geometry: new Point(fromLonLat([crd.longitude, crd.latitude]))}))
+  const {longitude, latitude} = pos.coords
+  addMarker({longitude, latitude})
 }
 
 function error(err: GeolocationPositionError) {
